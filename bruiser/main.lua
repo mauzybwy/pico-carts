@@ -318,8 +318,9 @@ function solid (x, y, passthru)
 	local tx = x / 8
 	local ty = y / 8
 
-	if (tx < 0 or tx >= 128 ) then
-		return true end
+	if (x < 0 or x >= 128 ) then
+		return true
+	end
 	
 	local m = mget(tx, ty)
 
