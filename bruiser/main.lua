@@ -1,7 +1,7 @@
 timing = 0.25
 max_actors = 8
 actors = {}
-ground = 100
+ground = 88
 gravity = 0.6
 
 cam_x = 0
@@ -123,23 +123,33 @@ function update_player(a)
 		a.d = 1
 	end
 
-	-- candidate position
-	a.x += a.dx
-	a.y += a.dy
+	local x = a.x
+	local y = a.y
 
-	if a.y >= ground then
+	-- candidate position
+	x = x + a.dx
+	y = y + a.dy
+	
+	-- if s[1] then
+	if solid(a.x, a.y + 8) then
 		a.grounded = true
-		a.y = ground
-		a.dy = 0
+		if a.dy > 0 then
+			a.dy = 0
+			y = flr(a.y / 8) * 8
+		end
 	else
 		a.grounded = false
 	end
 
 	if a.grounded then
-		a.dx *= friction
+		a.dx = flr_100(a.dx * friction)
 	else
+		a.dx = flr_100(a.dx)
 		a.dy += ddy
 	end
+
+	a.x = flr_100(x)
+	a.y = flr_100(y)
 
 	-- other states
 	a.drifting =
@@ -226,9 +236,21 @@ function _draw()
 
 	-- bottom
 	rectfill(0, 116, 127, 127, 4)
-	print("hey", 4, 120, 0)
 
-	camera(0,  -44)
+	-- ptx = flr(p.x / 8)
+	-- pty = flr(p.y / 8 - 5)
+	-- m = mget(ptx, pty + 1)
+	-- f = fget(m)
+	-- print(ptx.." | "..pty.." | "..f, 4, 120, 0)
+ local p = actors[1] 
+
+	-- local tx = flr(p.x / 8)
+	-- local ty = flr((p.y + 8) / 8)
+	-- print(tx.." | "..ty, 4, 120, 0)
+	
+	-- print(solid(p.x, p.y + 8), 4, 120, 0)
+
+	camera(0,  0)
 
 	-- draw the entire map at (0, 0), allowing
  -- the camera and clipping region to decide
@@ -244,3 +266,21 @@ function _draw()
 	end
 end
 
+function flr_100(n)
+ return flr(abs(n) * 100) / 100 * sgn(n)
+end
+
+-- test if a point is solid
+function solid (x, y)
+	local tx = flr(x / 8)
+	local ty = flr(y / 8)
+
+	-- print(ty, 4, 120, 0)
+	
+	if (tx < 0 or tx >= 128 ) then
+		return true end
+	
+	local m = mget(tx, ty)
+		
+	return fget(m, 0)
+end
