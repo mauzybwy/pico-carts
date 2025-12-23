@@ -87,6 +87,8 @@ function update_player(a)
 	local friction = a.friction
 
 	-- player control
+
+	-- left
 	if btn(0, b) then
 		if abs(a.dx) < a.max_dx then
 			a.dx -= ddx
@@ -95,6 +97,7 @@ function update_player(a)
 		friction = sgn(a.dx) < 0 and 1 or friction
 	end
 
+	-- right
 	if btn(1, b) then
 		if abs(a.dx) < a.max_dx then
 			a.dx += ddx
@@ -103,6 +106,7 @@ function update_player(a)
 		friction = sgn(a.dx) > 0 and 1 or friction
 	end
 
+	-- x
 	if btn(4, b) then
 		if pl.grounded then
 			a.dy = -a.jump_dy
@@ -111,45 +115,42 @@ function update_player(a)
 		end
 	end
 
-	a.frame += timing
-	if a.frame >= a.frames then
-		a.frame = 0
-	end
-
-	if a.x > 127 - 8 then
-		a.d = -1
-	end
-	if a.x < 0 then
-		a.d = 1
-	end
-
-	local x = a.x
-	local y = a.y
-
-	-- candidate position
-	x = x + a.dx
-	y = y + a.dy
-	
-	-- if s[1] then
-	if solid(a.x, a.y + 8) then
-		a.grounded = true
-		if a.dy > 0 then
-			a.dy = 0
-			y = flr(a.y / 8) * 8
-		end
-	else
-		a.grounded = false
-	end
-
+	-- apply friction
 	if a.grounded then
 		a.dx = flr_100(a.dx * friction)
 	else
 		a.dx = flr_100(a.dx)
-		a.dy += ddy
 	end
 
-	a.x = flr_100(x)
-	a.y = flr_100(y)
+		-- apply gravity
+	if not a.grounded then a.dy += ddy end
+
+	-- horizontal movement
+	local next_x = a.x + a.dx
+
+	if a.dx < 0 and solid(next_x, a.y) then
+		next_x = a.x
+		a.dx = 0
+	elseif a.dx > 0 and solid(next_x + 8, a.y) then
+		next_x = a.x
+		a.dx = 0
+	end
+
+	a.x = flr_100(next_x)
+
+		-- vertical movement
+	local next_y = a.y + a.dy
+	
+	if a.dy > 0 and solid(a.x, next_y + 7) then
+		-- falling and hit ground
+		a.dy = 0
+		next_y = flr(next_y / 8) * 8
+		a.grounded = true
+	else
+		a.grounded = solid(a.x, a.y + 8)
+	end
+
+	a.y = flr_100(next_y)
 
 	-- other states
 	a.drifting =
@@ -158,6 +159,11 @@ function update_player(a)
 end
 
 function draw_player(a)
+	a.frame += timing
+	if a.frame >= a.frames then
+		a.frame = 0
+	end
+	
 	-- jumping
 	if a.dy > 0.1 then
 		spr(a.k + 3, a.x, a.y, 1, 1, a.d < 0)
