@@ -155,6 +155,8 @@ tail_frames = {
 }
 tail_idx = 1
 
+-- todo: player state machine????????
+
 function draw_tail(a)
 	idx = flr(tail_idx)
   local drifting =
