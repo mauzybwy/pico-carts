@@ -1,8 +1,12 @@
 timing = 0.25
 max_actors = 8
 actors = {}
-GROUND = 100
-GRAVITY = 0.6
+ground = 100
+gravity = 0.6
+
+---------------------------------------------------
+-- actors
+---------------------------------------------------
 
 function make_actor(k, x, y, d)
 	local a = {
@@ -12,7 +16,7 @@ function make_actor(k, x, y, d)
 		dx = 0,
 		dy = 0,
 		max_dx = 4,
-		ddx = 0.3, -- acceleration
+		ddx = 0.2, -- acceleration
 		frame = 0,
 		frames = 3,
 		d = d or -1, -- direction
@@ -60,8 +64,12 @@ function move_actor(a)
 	end
 end
 
+--------------------------------------------------
+-- player
+--------------------------------------------------
+
 function move_player(a)
-	local ddy = GRAVITY
+	local ddy = gravity
 	local ddx = a.ddx * (a.grounded and 1 or 0.6)
 	local friction = a.friction
 
@@ -106,9 +114,9 @@ function move_player(a)
 	a.x += a.dx
 	a.y += a.dy
 
-	if a.y >= GROUND then
+	if a.y >= ground then
 		a.grounded = true
-		a.y = GROUND
+		a.y = ground
 		a.dy = 0
 	else
 		a.grounded = false
@@ -121,9 +129,47 @@ function move_player(a)
 	end
 end
 
+function draw_player(a)
+	local fr = a.k + a.frame
+
+	if a.dy < -0.1 then
+		spr(a.k + 4, a.x, a.y, 1, 1, a.d < 0)
+	elseif a.dy > 0.1 then
+		spr(a.k + 3, a.x, a.y, 1, 1, a.d < 0)
+	elseif abs(a.dx) > 0.3 then
+		spr(fr, a.x, a.y, 1, 1, a.d < 0)
+	else
+		spr(a.k, a.x, a.y, 1, 1, a.d < 0)
+	end
+
+	draw_tail(a)
+end
+
+--------------------------------------------------
+-- tail
+--------------------------------------------------
+
+tail_frames = { 16, 17 }
+tail_idx = 1
+
+function draw_tail(a)
+	idx = flr(tail_idx)
+	spr(tail_frames[idx], a.x - 5, a.y)
+
+	tail_idx += 0.05
+	if tail_idx > #tail_frames + 1 then
+		tail_idx = 1
+	end
+end
+
+--------------------------------------------------
+-- lifecycle
+--------------------------------------------------
+
 function _init()
-	pl = make_actor(1, 2, GROUND, 1)
+	pl = make_actor(1, 2, ground, 1)
 	pl.move = move_player
+	pl.draw = draw_player
 end
 
 function _draw()
