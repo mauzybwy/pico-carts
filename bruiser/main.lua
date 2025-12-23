@@ -141,7 +141,7 @@ function update_player(a)
 		-- vertical movement
 	local next_y = a.y + a.dy
 	
-	if a.dy > 0 and solid(a.x, next_y + 7) then
+	if a.dy > 0 and (solid(a.x, next_y + 8) or solid(a.x + 4, next_y + 8)) then
 		-- falling and hit ground
 		a.dy = 0
 		next_y = flr(next_y / 8) * 8
