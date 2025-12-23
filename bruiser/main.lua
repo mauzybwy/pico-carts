@@ -25,10 +25,14 @@ function make_actor(k, x, y, d)
 		dx = 0,
 		dy = 0,
 		ddx = 0.2, -- acceleration
-		friction = 0.85,
+		friction = 0.8,
 		max_dx = 4,
 		max_dy = 7,
 		jump_dy = 4,
+		coyote = 4,
+		max_coyote = 4,
+		jump_buf = 0,
+		max_jump_buf = 4,
 
 		-- lifecycle
 		update = update_actor,
@@ -87,6 +91,10 @@ function update_player(a)
 		a.ddx * (a.grounded and 1 or 0.6)
 	local friction = a.friction
 
+	if a.coyote > 0 and not a.grounded then
+		a.coyote -= 1
+	end
+
 	-- player control
 
 	-- left
@@ -109,11 +117,22 @@ function update_player(a)
 
 	-- x
 	if btn(4, b) then
-		if pl.grounded then
-			a.dy = -a.jump_dy
-		else
-			ddy *= 0.6
-		end
+		-- elongate jump on hold
+		if a.dy < 0 then ddy *= 0.4 end
+		
+		a.jump_buf += 1
+	else
+		a.jump_buf = 0
+	end
+
+	if
+		(a.grounded or a.coyote > 0)
+			and a.jump_buf > 0
+			and a.jump_buf < a.max_jump_buf
+	then
+		a.dy = -a.jump_dy
+		a.grounded = false
+		a.coyote = 0
 	end
 
 	-- apply friction
@@ -148,30 +167,38 @@ function update_player(a)
 	local flr_solid =
 		solid(a.x + 2, next_y + 8)
 				or solid(a.x + 4, next_y + 8)
-	
+
+	-- falling and hit ground
 	if a.dy > 0 and flr_solid then
-		-- falling and hit ground
 		a.dy = 0
 		next_y = flr(next_y / 8) * 8
 		a.grounded = true
+
+	-- rising and hit ceiling
 	elseif a.dy < 0
 		and (
 		solid(a.x + 2, next_y, true)
 			or solid(a.x + 4, next_y, true)
-	) then
-		-- rising and hit ceiling
+	) then	
 		a.dy = 0
 		next_y = flr(next_y / 8) * 8 + 8
+
+	-- grounded?
 	else
-		a.grounded = a.dy == 0 and flr_solid
+		a.grounded = abs(a.dy) < 0.1 and flr_solid
 	end
 
 	a.y = flr_100(next_y)
 
 	-- other states
+	if a.grounded then
+		a.coyote = a.max_coyote
+	end
+	
 	a.drifting =
   (sgn(a.dx) != sgn(a.d)) and (abs(a.dx) > 0.1)
- a.running = not drifting and abs(a.dx) > 1
+
+	a.running = not drifting and abs(a.dx) > 1
 end
 
 function draw_player(a)
@@ -183,13 +210,16 @@ function draw_player(a)
 	-- jumping
 	if a.dy > 0.1 then
 		spr(a.k + 3, a.x, a.y, 1, 1, a.d < 0)
+
 	-- falling
 	elseif a.dy < -0.1 then
 		spr(a.k + 4, a.x, a.y, 1, 1, a.d < 0)
+
 	-- running
 	elseif abs(a.dx) > 0.3 then
 		spr(a.k + a.frame, a.x, a.y, 1, 1, a.d < 0)
-	-- standing
+
+		-- standing
 	else
 		spr(a.k, a.x, a.y, 1, 1, a.d < 0)
 	end
@@ -262,7 +292,7 @@ function _draw()
  local p = actors[1] 
 
 	
-	print(p.grounded, 4, 120, 0)
+	print(p.jump_buf, 4, 120, 0)
 
 	camera(0,  0)
 
