@@ -119,8 +119,10 @@ function update_player(a)
 	if btn(4, b) then
 		-- elongate jump on hold
 		if a.dy < 0 then ddy *= 0.4 end
-		
-		a.jump_buf += 1
+
+		if a.jump_buf < a.max_jump_buf then
+			a.jump_buf += 1
+		end
 	else
 		a.jump_buf = 0
 	end
