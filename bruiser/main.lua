@@ -149,12 +149,36 @@ end
 -- tail
 --------------------------------------------------
 
-tail_frames = { 16, 17 }
+tail_frames = {
+    {16, 17}, -- still
+    {17, 18}, -- running
+}
 tail_idx = 1
 
 function draw_tail(a)
 	idx = flr(tail_idx)
-	spr(tail_frames[idx], a.x - 5, a.y)
+  local drifting =
+      (sgn(a.dx) != sgn(a.d)) and (abs(a.dx) >
+	    0.1)
+  local running = not drifting and abs(a.dx) > 1
+  local d = a.d
+  local offset = 5
+
+  if drifting then  d = -d end
+
+  if (a.d < 0 and not drifting)
+      or (a.d > 0 and drifting) then
+     offset = -offset
+  end
+  
+	local frames = tail_frames[1]
+  if running then
+      frames = tail_frames[2]
+  end
+                  
+
+	spr(frames[idx], a.x - offset, a.y, 1, 1, d
+	< 0)
 
 	tail_idx += 0.05
 	if tail_idx > #tail_frames + 1 then
