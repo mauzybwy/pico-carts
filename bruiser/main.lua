@@ -27,6 +27,7 @@ function make_actor(k, x, y, d)
 		ddx = 0.2, -- acceleration
 		friction = 0.85,
 		max_dx = 4,
+		max_dy = 7,
 		jump_dy = 4,
 
 		-- lifecycle
@@ -123,15 +124,19 @@ function update_player(a)
 	end
 
 		-- apply gravity
-	if not a.grounded then a.dy += ddy end
+	if not a.grounded
+		and abs(a.dy) < a.max_dy then
+		a.dy += ddy
+	end
 
 	-- horizontal movement
 	local next_x = a.x + a.dx
 
-	if a.dx < 0 and solid(next_x, a.y) then
+	if a.dx < 0 and solid(next_x, a.y, true) then
 		next_x = flr(next_x / 8) * 8 + 8
 		a.dx = 0
-	elseif a.dx > 0 and solid(next_x + 8, a.y) then
+	elseif a.dx > 0 and
+		solid(next_x + 8, a.y, true) then
 		next_x = flr(next_x / 8) * 8
 		a.dx = 0
 	end
@@ -140,18 +145,25 @@ function update_player(a)
 
 		-- vertical movement
 	local next_y = a.y + a.dy
-	
-	if a.dy > 0
-		and (
+	local flr_solid =
 		solid(a.x + 2, next_y + 8)
-			or solid(a.x + 4, next_y + 8)
-	) then
+				or solid(a.x + 4, next_y + 8)
+	
+	if a.dy > 0 and flr_solid then
 		-- falling and hit ground
 		a.dy = 0
 		next_y = flr(next_y / 8) * 8
 		a.grounded = true
+	elseif a.dy < 0
+		and (
+		solid(a.x + 2, next_y, true)
+			or solid(a.x + 4, next_y, true)
+	) then
+		-- rising and hit ceiling
+		a.dy = 0
+		next_y = flr(next_y / 8) * 8 + 8
 	else
-		a.grounded = solid(a.x, a.y + 8)
+		a.grounded = a.dy == 0 and flr_solid
 	end
 
 	a.y = flr_100(next_y)
@@ -247,18 +259,10 @@ function _draw()
 	-- bottom
 	rectfill(0, 116, 127, 127, 4)
 
-	-- ptx = flr(p.x / 8)
-	-- pty = flr(p.y / 8 - 5)
-	-- m = mget(ptx, pty + 1)
-	-- f = fget(m)
-	-- print(ptx.." | "..pty.." | "..f, 4, 120, 0)
  local p = actors[1] 
 
-	-- local tx = flr(p.x / 8)
-	-- local ty = flr((p.y + 8) / 8)
-	-- print(tx.." | "..ty, 4, 120, 0)
 	
-	-- print(solid(p.x, p.y + 8), 4, 120, 0)
+	print(p.grounded, 4, 120, 0)
 
 	camera(0,  0)
 
@@ -280,17 +284,20 @@ function flr_100(n)
  return flr(abs(n) * 100) / 100 * sgn(n)
 end
 
--- test if a point is solid
-function solid (x, y)
-	local tx = flr(x / 8)
-	local ty = flr(y / 8)
+function solid (x, y, passthru)
+	local tx = x / 8
+	local ty = y / 8
 
-	-- print(ty, 4, 120, 0)
-	
 	if (tx < 0 or tx >= 128 ) then
 		return true end
 	
 	local m = mget(tx, ty)
-		
-	return fget(m, 0)
+
+	if fget(m, 1) then
+		return true
+	end
+
+	if (fget(m,0)) then
+		return not passthru
+	end
 end
