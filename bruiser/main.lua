@@ -4,27 +4,39 @@ actors = {}
 ground = 100
 gravity = 0.6
 
----------------------------------------------------
+cam_x = 0
+cam_y = 0
+
+----------------------------------------
 -- actors
----------------------------------------------------
+----------------------------------------
 
 function make_actor(k, x, y, d)
 	local a = {
+		-- sprites
 		k = k,
-		x = x,
-		y = y,
-		dx = 0,
-		dy = 0,
-		max_dx = 4,
-		ddx = 0.2, -- acceleration
 		frame = 0,
 		frames = 3,
+
+		-- physics
+		x = x,
+		y = y,
 		d = d or -1, -- direction
+		dx = 0,
+		dy = 0,
+		ddx = 0.2, -- acceleration
 		friction = 0.85,
-		jump = 5,
+		max_dx = 4,
+		jump_dy = 4,
+
+		-- lifecycle
+		update = update_actor,
 		draw = draw_actor,
-		move = move_actor,
+
+		-- state
 		grounded = true,
+		running = false,
+		drifting = false,
 	}
 
 	if #actors < max_actors then
@@ -48,7 +60,7 @@ function draw_actor(a)
 	end
 end
 
-function move_actor(a)
+function update_actor(a)
 	a.frame += timing
 	if a.frame >= a.frames then
 		a.frame = 0
@@ -64,13 +76,14 @@ function move_actor(a)
 	end
 end
 
---------------------------------------------------
+----------------------------------------
 -- player
---------------------------------------------------
+----------------------------------------
 
-function move_player(a)
+function update_player(a)
 	local ddy = gravity
-	local ddx = a.ddx * (a.grounded and 1 or 0.6)
+	local ddx =
+		a.ddx * (a.grounded and 1 or 0.6)
 	local friction = a.friction
 
 	-- player control
@@ -92,7 +105,7 @@ function move_player(a)
 
 	if btn(4, b) then
 		if pl.grounded then
-			a.dy = -a.jump
+			a.dy = -a.jump_dy
 		else
 			ddy *= 0.6
 		end
@@ -127,17 +140,24 @@ function move_player(a)
 	else
 		a.dy += ddy
 	end
+
+	-- other states
+	a.drifting =
+  (sgn(a.dx) != sgn(a.d)) and (abs(a.dx) > 0.1)
+ a.running = not drifting and abs(a.dx) > 1
 end
 
 function draw_player(a)
-	local fr = a.k + a.frame
-
-	if a.dy < -0.1 then
-		spr(a.k + 4, a.x, a.y, 1, 1, a.d < 0)
-	elseif a.dy > 0.1 then
+	-- jumping
+	if a.dy > 0.1 then
 		spr(a.k + 3, a.x, a.y, 1, 1, a.d < 0)
+	-- falling
+	elseif a.dy < -0.1 then
+		spr(a.k + 4, a.x, a.y, 1, 1, a.d < 0)
+	-- running
 	elseif abs(a.dx) > 0.3 then
-		spr(fr, a.x, a.y, 1, 1, a.d < 0)
+		spr(a.k + a.frame, a.x, a.y, 1, 1, a.d < 0)
+	-- standing
 	else
 		spr(a.k, a.x, a.y, 1, 1, a.d < 0)
 	end
@@ -145,9 +165,9 @@ function draw_player(a)
 	draw_tail(a)
 end
 
---------------------------------------------------
+----------------------------------------
 -- tail
---------------------------------------------------
+----------------------------------------
 
 tail_frames = {
     {16, 17}, -- still
@@ -155,26 +175,20 @@ tail_frames = {
 }
 tail_idx = 1
 
--- todo: player state machine????????
-
 function draw_tail(a)
 	idx = flr(tail_idx)
-  local drifting =
-      (sgn(a.dx) != sgn(a.d)) and (abs(a.dx) >
-	    0.1)
-  local running = not drifting and abs(a.dx) > 1
   local d = a.d
   local offset = 5
 
-  if drifting then  d = -d end
+  if a.drifting then  d = -d end
 
-  if (a.d < 0 and not drifting)
-      or (a.d > 0 and drifting) then
+  if (a.d < 0 and not a.drifting)
+      or (a.d > 0 and a.drifting) then
      offset = -offset
   end
   
 	local frames = tail_frames[1]
-  if running then
+  if a.running then
       frames = tail_frames[2]
   end
                   
@@ -188,26 +202,45 @@ function draw_tail(a)
 	end
 end
 
---------------------------------------------------
+----------------------------------------
 -- lifecycle
---------------------------------------------------
+----------------------------------------
 
 function _init()
 	pl = make_actor(1, 2, ground, 1)
-	pl.move = move_player
+	pl.update = update_player
 	pl.draw = draw_player
+end
+
+function _update()
+	for a in all(actors) do
+		a:update()
+	end
 end
 
 function _draw()
 	cls()
+
+	-- sky
+	rectfill(0, 0, 127, 127, 1)
+
+	-- bottom
+	rectfill(0, 116, 127, 127, 4)
+	print("hey", 4, 120, 0)
+
+	camera(0,  -44)
+
+	-- draw the entire map at (0, 0), allowing
+ -- the camera and clipping region to decide
+ -- what is shown
+ map(0, 0, 0, 0, 128, 32)
+
+ -- reset the camera then print the camera
+ -- coordinates on screen
+ camera()
 
 	for a in all(actors) do
 		a:draw()
 	end
 end
 
-function _update()
-	for a in all(actors) do
-		a:move()
-	end
-end
