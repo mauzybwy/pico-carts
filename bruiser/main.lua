@@ -21,6 +21,8 @@ function make_actor(k, x, y, d)
 		-- physics
 		x = x,
 		y = y,
+		h = 8,
+		w = 8,
 		d = d or -1, -- direction
 		dx = 0,
 		dy = 0,
@@ -96,21 +98,18 @@ function update_player(a)
 	end
 
 	-- player control
+	maxed = abs(a.dx) >= a.max_dx
 
 	-- left
 	if btn(0, b) then
-		if abs(a.dx) < a.max_dx then
-			a.dx -= ddx
-		end
+		if not maxed then a.dx -= ddx end
 		a.d = -1
 		friction = sgn(a.dx) < 0 and 1 or friction
 	end
 
 	-- right
 	if btn(1, b) then
-		if abs(a.dx) < a.max_dx then
-			a.dx += ddx
-		end
+		if not maxed then a.dx += ddx end
 		a.d = 1
 		friction = sgn(a.dx) > 0 and 1 or friction
 	end
@@ -154,11 +153,11 @@ function update_player(a)
 	local next_x = a.x + a.dx
 
 	if a.dx < 0 and solid(next_x, a.y, true) then
-		next_x = flr(next_x / 8) * 8 + 8
+		next_x = flr_t(next_x) + a.w
 		a.dx = 0
 	elseif a.dx > 0 and
-		solid(next_x + 8, a.y, true) then
-		next_x = flr(next_x / 8) * 8
+		solid(next_x + a.w, a.y, true) then
+		next_x = flr_t(next_x)
 		a.dx = 0
 	end
 
@@ -167,23 +166,23 @@ function update_player(a)
 		-- vertical movement
 	local next_y = a.y + a.dy
 	local flr_solid =
-		solid(a.x + 2, next_y + 8)
-				or solid(a.x + 4, next_y + 8)
+		solid(a.x + 2, next_y + a.h)
+				or solid(a.x + a.w - 2, next_y + a.h)
 
 	-- falling and hit ground
 	if a.dy > 0 and flr_solid then
 		a.dy = 0
-		next_y = flr(next_y / 8) * 8
+		next_y = flr_t(next_y)
 		a.grounded = true
 
 	-- rising and hit ceiling
 	elseif a.dy < 0
 		and (
 		solid(a.x + 2, next_y, true)
-			or solid(a.x + 4, next_y, true)
+			or solid(a.x + a.w - 2, next_y, true)
 	) then	
 		a.dy = 0
-		next_y = flr(next_y / 8) * 8 + 8
+		next_y = flr_t(next_y) + a.h
 
 	-- grounded?
 	else
@@ -314,6 +313,10 @@ end
 
 function flr_100(n)
  return flr(abs(n) * 100) / 100 * sgn(n)
+end
+
+function flr_t(n)
+	return flr(n / 8) * 8
 end
 
 function solid (x, y, passthru)
