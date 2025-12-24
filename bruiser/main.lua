@@ -1,19 +1,31 @@
+--(====================================-
+-- constants/globals
+--(====================================-
+
 timing = 0.25
 max_actors = 8
 actors = {}
-ground = 88
+ground = 230
 gravity = 0.6
 map_w = 100
 map_h = 32
 
 cam={
- x=0,
- y=0
+ x=-128,
+ y=-128
 }
 
-----------------------------------------
+logt = {}
+
+
+
+--(====================================-
 -- actors
-----------------------------------------
+--(====================================-
+
+
+--------------------
+-- make actor ------
 
 function make_actor(k, x, y, d)
 	local a = {
@@ -57,6 +69,9 @@ function make_actor(k, x, y, d)
 	return a
 end
 
+--------------------
+-- draw actor ------
+
 function draw_actor(a)
 	-- local fr = a.k + a.frame
 	-- 
@@ -70,6 +85,9 @@ function draw_actor(a)
 	-- 	spr(a.k, a.x, a.y, 1, 1, a.d < 0)
 	-- end
 end
+
+--------------------
+-- update actor ----
 
 function update_actor(a)
 	-- a.frame += timing
@@ -87,9 +105,15 @@ function update_actor(a)
 	-- end
 end
 
-----------------------------------------
+
+
+--(====================================-
 -- player
-----------------------------------------
+--(====================================-
+
+
+--------------------
+-- update player ---
 
 function update_player(a)
 	local ddy = gravity
@@ -156,11 +180,11 @@ function update_player(a)
 	-- horizontal movement
 	local next_x = a.x + a.dx
 
-	if a.dx < 0 and solid(next_x, a.y, true) then
+	if a.dx < 0 and map_xn(next_x, a.y, true) then
 		next_x = flr_t(next_x) + a.w
 		a.dx = 0
 	elseif a.dx > 0 and
-		solid(next_x + a.w, a.y, true) then
+		map_xn(next_x + a.w, a.y, true) then
 		next_x = flr_t(next_x)
 		a.dx = 0
 	end
@@ -170,8 +194,8 @@ function update_player(a)
 	-- vertical movement
 	local next_y = a.y + a.dy
 	local flr_solid =
-		solid(a.x + 2, next_y + a.h)
-		or solid(a.x + a.w - 2, next_y + a.h)
+		map_xn(a.x + 2, next_y + a.h)
+		or map_xn(a.x + a.w - 2, next_y + a.h)
 
 	-- falling and hit ground
 	if a.dy > 0 and flr_solid then
@@ -182,8 +206,8 @@ function update_player(a)
 		-- rising and hit ceiling
 	elseif a.dy < 0
 		and (
-		solid(a.x + 2, next_y, true)
-			or solid(a.x + a.w - 2, next_y, true)
+		map_xn(a.x + 2, next_y, true)
+			or map_xn(a.x + a.w - 2, next_y, true)
 	) then	
 		a.dy = 0
 		next_y = flr_t(next_y) + a.h
@@ -205,6 +229,9 @@ function update_player(a)
 
 	a.running = not drifting and abs(a.dx) > 1
 end
+
+--------------------
+-- draw player -----
 
 function draw_player(a)
 	a.frame += timing
@@ -229,12 +256,15 @@ function draw_player(a)
 		spr(a.k, a.x, a.y, 1, 1, a.d < 0)
 	end
 
+	log(a.x.." | "..a.y)
+	log(a.dx.." | "..a.dy)
+
+
 	draw_tail(a)
 end
 
-----------------------------------------
--- tail
-----------------------------------------
+--------------------
+-- player tail -----
 
 tail_frames = {
  {16, 17}, -- still
@@ -273,29 +303,44 @@ function draw_tail(a)
 	end
 end
 
-----------------------------------------
+
+
+--(====================================-
 -- lifecycle
-----------------------------------------
+--(====================================-
+
+
+--------------------
+-- init ------------
 
 function _init()
-	pl = make_actor(1, 8, ground, 1)
+	pl = make_actor(1, 150, ground, 1)
 	pl.update = update_player
 	pl.draw = draw_player
 end
 
+--------------------
+-- update ----------
+
 function _update()
+	logt={}
+	
 	for a in all(actors) do
 		a:update()
 	end
 end
 
+--------------------
+-- draw ------------
+
 function _draw()
 	cls()
 
-	-- sky
-	rectfill(0, 0, 127, 127, 1)
+	-- player
+	local p = actors[1]
 
- local p = actors[1]
+	-- backround
+	rectfill(0, 0, 127, 127, 1)
 
 	-- camera
 	local target_x = p.x - 64
@@ -308,21 +353,28 @@ function _draw()
 	
 	camera(cam.x, cam.y)
 
-	-- print(p.x.."|"..cam.x, 4, 120, 0)
-	
-	-- draw the entire map at (0, 0), allowing
- -- the camera and clipping region to decide
- -- what is shown
- map(0, 0, 0, 0, map_w, 32)
+	-- map
+	map(0, 0, 0, 0, map_w, 32)
 
+	-- actors
 	for a in all(actors) do
 		a:draw()
 	end
 
-	-- reset the camera then print the camera
- -- coordinates on screen
  camera()
+
+	print(join("\n", unpack(logt)), 0, 0, 7)
 end
+
+
+
+--(====================================-
+-- helpers
+--(====================================-
+
+
+--------------------
+-- math ------------
 
 function flr_100(n)
 	dec = abs(n) - flr(abs(n))
@@ -331,11 +383,16 @@ function flr_100(n)
  return sgn(n) * (flr(abs(n)) + hun)
 end
 
+--(=====-
+
 function flr_t(n)
 	return flr(n / 8) * 8
 end
 
-function solid (x, y, passthru)
+--------------------
+-- collision (xn) --
+
+function map_xn(x, y, passthru)
 	local cx = x
 	local cy = y
 	
@@ -351,4 +408,24 @@ function solid (x, y, passthru)
 	if (fget(m,0)) then
 		return not passthru
 	end
+end
+
+--(=====-
+
+function aabb_xn(r1, r2)
+ return r1.x < r2.x+r2.w and
+  r1.x+r1.w > r2.x and
+  r1.y < r2.y+r2.h and
+  r1.y+r1.h > r2.y
+end
+
+--------------------
+-- logging ---------
+
+function log(str)
+	add(logt,str)
+end
+
+function join(d,s,...)
+  return ... and s..d..join(d,...) or s or ''
 end
