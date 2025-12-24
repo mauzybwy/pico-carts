@@ -3,9 +3,13 @@ max_actors = 8
 actors = {}
 ground = 88
 gravity = 0.6
+map_w = 100
+map_h = 32
 
-cam_x = 0
-cam_y = 0
+cam={
+ x=0,
+ y=0
+}
 
 ----------------------------------------
 -- actors
@@ -28,7 +32,7 @@ function make_actor(k, x, y, d)
 		dy = 0,
 		ddx = 0.2, -- acceleration
 		friction = 0.8,
-		max_dx = 4,
+		max_dx = 3,
 		max_dy = 7,
 		jump_dy = 4,
 		coyote = 4,
@@ -54,33 +58,33 @@ function make_actor(k, x, y, d)
 end
 
 function draw_actor(a)
-	local fr = a.k + a.frame
-
-	if a.dy < -0.1 then
-		spr(a.k + 4, a.x, a.y, 1, 1, a.d < 0)
-	elseif a.dy > 0.1 then
-		spr(a.k + 3, a.x, a.y, 1, 1, a.d < 0)
-	elseif abs(a.dx) > 0.3 then
-		spr(fr, a.x, a.y, 1, 1, a.d < 0)
-	else
-		spr(a.k, a.x, a.y, 1, 1, a.d < 0)
-	end
+	-- local fr = a.k + a.frame
+	-- 
+	-- if a.dy < -0.1 then
+	-- 	spr(a.k + 4, a.x, a.y, 1, 1, a.d < 0)
+	-- elseif a.dy > 0.1 then
+	-- 	spr(a.k + 3, a.x, a.y, 1, 1, a.d < 0)
+	-- elseif abs(a.dx) > 0.3 then
+	-- 	spr(fr, a.x, a.y, 1, 1, a.d < 0)
+	-- else
+	-- 	spr(a.k, a.x, a.y, 1, 1, a.d < 0)
+	-- end
 end
 
 function update_actor(a)
-	a.frame += timing
-	if a.frame >= a.frames then
-		a.frame = 0
-	end
-
-	a.x += a.d
-
-	if a.x > 127 - 8 then
-		a.d = -1
-	end
-	if a.x < 0 then
-		a.d = 1
-	end
+	-- a.frame += timing
+	-- if a.frame >= a.frames then
+	-- 	a.frame = 0
+	-- end
+	-- 
+	-- a.x += a.d
+	-- 
+	-- if a.x > 127 - 8 then
+	-- 	a.d = -1
+	-- end
+	-- if a.x < 0 then
+	-- 	a.d = 1
+	-- end
 end
 
 ----------------------------------------
@@ -270,7 +274,7 @@ end
 ----------------------------------------
 
 function _init()
-	pl = make_actor(1, 2, ground, 1)
+	pl = make_actor(1, 8, ground, 1)
 	pl.update = update_player
 	pl.draw = draw_player
 end
@@ -287,32 +291,40 @@ function _draw()
 	-- sky
 	rectfill(0, 0, 127, 127, 1)
 
-	-- bottom
-	rectfill(0, 116, 127, 127, 4)
+ local p = actors[1]
 
- local p = actors[1] 
+	-- camera
+	local target_x = p.x - 64
+	cam.x += (target_x - cam.x) * 0.1
+	cam.x = mid(0, cam.x, map_w * 8 - 128)
 
+	local target_y = p.y - 64
+	cam.y += (target_y - cam.y) * 0.1
+	cam.y = mid(0, cam.y, map_h * 8 - 128)
 	
-	print(p.jump_buf, 4, 120, 0)
+	camera(cam.x, cam.y)
 
-	camera(0,  0)
-
+	-- print(p.x.."|"..cam.x, 4, 120, 0)
+	
 	-- draw the entire map at (0, 0), allowing
  -- the camera and clipping region to decide
  -- what is shown
- map(0, 0, 0, 0, 128, 32)
-
- -- reset the camera then print the camera
- -- coordinates on screen
- camera()
+ map(0, 0, 0, 0, map_w, 32)
 
 	for a in all(actors) do
 		a:draw()
 	end
+
+	-- reset the camera then print the camera
+ -- coordinates on screen
+ camera()
 end
 
 function flr_100(n)
- return flr(abs(n) * 100) / 100 * sgn(n)
+	dec = abs(n) - flr(abs(n))
+	hun = flr(dec * 100) / 100
+	
+ return sgn(n) * (flr(abs(n)) + hun)
 end
 
 function flr_t(n)
@@ -320,12 +332,11 @@ function flr_t(n)
 end
 
 function solid (x, y, passthru)
-	local tx = x / 8
-	local ty = y / 8
-
-	if (x < 0 or x >= 128 ) then
-		return true
-	end
+	local cx = x
+	local cy = y
+	
+	local tx = cx / 8
+	local ty = cy / 8
 	
 	local m = mget(tx, ty)
 
