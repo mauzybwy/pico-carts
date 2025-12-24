@@ -147,7 +147,7 @@ function update_player(a)
 		a.dx = flr_100(a.dx)
 	end
 
-		-- apply gravity
+	-- apply gravity
 	if not a.grounded
 		and abs(a.dy) < a.max_dy then
 		a.dy += ddy
@@ -167,11 +167,11 @@ function update_player(a)
 
 	a.x = flr_100(next_x)
 
-		-- vertical movement
+	-- vertical movement
 	local next_y = a.y + a.dy
 	local flr_solid =
 		solid(a.x + 2, next_y + a.h)
-				or solid(a.x + a.w - 2, next_y + a.h)
+		or solid(a.x + a.w - 2, next_y + a.h)
 
 	-- falling and hit ground
 	if a.dy > 0 and flr_solid then
@@ -179,7 +179,7 @@ function update_player(a)
 		next_y = flr_t(next_y)
 		a.grounded = true
 
-	-- rising and hit ceiling
+		-- rising and hit ceiling
 	elseif a.dy < 0
 		and (
 		solid(a.x + 2, next_y, true)
@@ -188,7 +188,7 @@ function update_player(a)
 		a.dy = 0
 		next_y = flr_t(next_y) + a.h
 
-	-- grounded?
+		-- grounded?
 	else
 		a.grounded = abs(a.dy) < 0.1 and flr_solid
 	end
@@ -216,11 +216,11 @@ function draw_player(a)
 	if a.dy > 0.1 then
 		spr(a.k + 3, a.x, a.y, 1, 1, a.d < 0)
 
-	-- falling
+		-- falling
 	elseif a.dy < -0.1 then
 		spr(a.k + 4, a.x, a.y, 1, 1, a.d < 0)
 
-	-- running
+		-- running
 	elseif abs(a.dx) > 0.3 then
 		spr(a.k + a.frame, a.x, a.y, 1, 1, a.d < 0)
 
@@ -237,34 +237,38 @@ end
 ----------------------------------------
 
 tail_frames = {
-    {16, 17}, -- still
-    {17, 18}, -- running
+ {16, 17}, -- still
+ {17, 18}, -- running
+	{16, 16}, -- falling
+	{17, 17}, -- jumping
 }
 tail_idx = 1
 
 function draw_tail(a)
 	idx = flr(tail_idx)
-  local d = a.d
-  local offset = 5
+ local d = a.d
+ local offset = 5
 
-  if a.drifting then  d = -d end
+ if a.drifting then  d = -d end
 
-  if (a.d < 0 and not a.drifting)
-      or (a.d > 0 and a.drifting) then
-     offset = -offset
-  end
+ if (a.d < 0 and not a.drifting)
+  or (a.d > 0 and a.drifting) then
+  offset = -offset
+ end
+
+	local tf_idx = 1
+	if a.dy > 0.05 then tf_idx = 3
+	elseif a.dy < -0.05 then tf_idx = 4
+	elseif a.running then tf_idx = 2
+	end
   
-	local frames = tail_frames[1]
-  if a.running then
-      frames = tail_frames[2]
-  end
-                  
+	local frames = tail_frames[tf_idx]
 
 	spr(frames[idx], a.x - offset, a.y, 1, 1, d
-	< 0)
+		< 0)
 
 	tail_idx += 0.05
-	if tail_idx > #tail_frames + 1 then
+	if tail_idx > #frames + 1 then
 		tail_idx = 1
 	end
 end
@@ -299,7 +303,7 @@ function _draw()
 	cam.x = mid(0, cam.x, map_w * 8 - 128)
 
 	local target_y = p.y - 64
-	cam.y += (target_y - cam.y) * 0.1
+	cam.y += (target_y - cam.y) * 0.3
 	cam.y = mid(0, cam.y, map_h * 8 - 128)
 	
 	camera(cam.x, cam.y)
