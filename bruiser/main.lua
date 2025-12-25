@@ -5,16 +5,18 @@
 timing = 0.25
 max_actors = 8
 actors = {}
-ground = 230
+start_x = 180
+start_y = 232
 gravity = 0.6
 map_w = 100
 map_h = 32
 
 cam={
- x=-128,
- y=-128
+ x=124,
+ y=128
 }
 
+log_en = false
 logt = {}
 
 
@@ -129,21 +131,21 @@ function update_player(a)
 	maxed = abs(a.dx) >= a.max_dx
 
 	-- left
-	if btn(0, b) then
+	if btn(⬅️, b) then
 		if not maxed then a.dx -= ddx end
 		a.d = -1
 		friction = sgn(a.dx) < 0 and 1 or friction
 	end
 
 	-- right
-	if btn(1, b) then
+	if btn(➡️, b) then
 		if not maxed then a.dx += ddx end
 		a.d = 1
 		friction = sgn(a.dx) > 0 and 1 or friction
 	end
 
 	-- x
-	if btn(4, b) then
+	if btn(❎, b) then
 		-- elongate jump on hold
 		if a.dy < 0 then ddy *= 0.4 end
 
@@ -256,10 +258,6 @@ function draw_player(a)
 		spr(a.k, a.x, a.y, 1, 1, a.d < 0)
 	end
 
-	log(a.x.." | "..a.y)
-	log(a.dx.." | "..a.dy)
-
-
 	draw_tail(a)
 end
 
@@ -314,7 +312,7 @@ end
 -- init ------------
 
 function _init()
-	pl = make_actor(1, 150, ground, 1)
+	pl = make_actor(1, start_x, start_y, 1)
 	pl.update = update_player
 	pl.draw = draw_player
 end
@@ -343,14 +341,15 @@ function _draw()
 	rectfill(0, 0, 127, 127, 1)
 
 	-- camera
-	local target_x = p.x - 64
+	local target_x = p.x - 56
 	cam.x += (target_x - cam.x) * 0.1
 	cam.x = mid(0, cam.x, map_w * 8 - 128)
 
 	local target_y = p.y - 64
 	cam.y += (target_y - cam.y) * 0.3
 	cam.y = mid(0, cam.y, map_h * 8 - 128)
-	
+
+	log(cam.x.." | "..cam.y)
 	camera(cam.x, cam.y)
 
 	-- map
@@ -361,9 +360,16 @@ function _draw()
 		a:draw()
 	end
 
+	print("test arena", start_x - 16, start_y - 40, 7)
+	print("arrows + ❎", start_x - 17, start_y - 32, 7)
+
+
  camera()
 
-	print(join("\n", unpack(logt)), 0, 0, 7)
+	-- print logs
+	if(log_en) then
+		print(join("\n", unpack(logt)), 0, 0, 7)
+	end
 end
 
 
