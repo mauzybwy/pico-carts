@@ -42,6 +42,7 @@ function make_actor(k, x, y, d)
 		h = 8,
 		w = 8,
 		d = d or -1, -- direction
+		facing = 0,
 		dx = 0,
 		dy = 0,
 		ddx = 0.2, -- acceleration
@@ -125,6 +126,7 @@ function update_player(a)
 	local ddy = gravity
 	local ddx = a.ddx * (a.grounded and 1 or 0.6)
 	local friction = a.friction
+	a.facing = 0
 
 	if a.coyote > 0 and not a.grounded then
 		a.coyote -= 1
@@ -139,13 +141,19 @@ function update_player(a)
 		a.d = -1
 		friction = sgn(a.dx) < 0 and 1 or friction
 	end
-
+	
 	-- right
 	if btn(➡️, b) then
 		if not maxed then a.dx += ddx end
 		a.d = 1
 		friction = sgn(a.dx) > 0 and 1 or friction
 	end
+
+	-- up
+	if btn(⬆️, b) then a.facing = 1 end
+
+	-- down
+	if btn(⬇️, b) then a.facing = -1 end
 
 	-- x
 	if btn(❎, b) then
@@ -252,6 +260,7 @@ function draw_player(a)
 		spr(a.k, a.x, a.y, 1, 1, a.d < 0)
 	end
 
+	draw_face(a)
 	draw_tail(a)
 end
 
@@ -293,6 +302,22 @@ function draw_tail(a)
 	if tail_idx > #frames + 1 then
 		tail_idx = 1
 	end
+end
+
+--------------------
+-- player face -----
+
+function draw_face(a)
+	local fr = 32
+	if a.facing < 0 then
+		fr = 34
+	elseif a.facing > 0 then
+			fr = 33
+	end
+
+	local x = a.d < 0 and a.x - 1 or a.x + 1 
+
+	spr(fr, x, a.y - 2, 1, 1, a.d < 0)
 end
 
 
