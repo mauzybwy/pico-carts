@@ -16,7 +16,7 @@ cam={
  y=128
 }
 
-log_en = false
+log_en = true
 logt = {}
 
 
@@ -121,6 +121,7 @@ end
 
 function update_player(a)
 	-- setup
+	local xa = tcp(a)
 	local ddy = gravity
 	local ddx = a.ddx * (a.grounded and 1 or 0.6)
 	local friction = a.friction
@@ -170,9 +171,9 @@ function update_player(a)
 
 	-- apply friction
 	if a.grounded then
-		a.dx = flr_100(a.dx * friction)
+		a.dx = a.dx * friction
 	else
-		a.dx = flr_100(a.dx)
+		a.dx = a.dx
 	end
 
 	-- apply gravity
@@ -182,46 +183,34 @@ function update_player(a)
 	end
 
 	-- horizontal movement
-	local next_x = a.x + a.dx
+	a.x += a.dx
 
-	if a.dx < 0 and map_xn(next_x, a.y, true) then
-		next_x = flr_t(next_x) + a.w
+	if a.dx < 0 and map_xn(a, 1) then
+		a.x = flr_t(a.x) + a.w
 		a.dx = 0
-	elseif a.dx > 0 and
-		map_xn(next_x + a.w, a.y, true) then
-		next_x = flr_t(next_x)
+	elseif a.dx > 0 and map_xn(a, 3) then
+		a.x = flr_t(a.x)
 		a.dx = 0
 	end
 
-	a.x = flr_100(next_x)
-
 	-- vertical movement
-	local next_y = a.y + a.dy
-	local flr_solid =
-		map_xn(a.x + 2, next_y + a.h)
-		or map_xn(a.x + a.w - 2, next_y + a.h)
+	a.y += a.dy
 
 	-- falling and hit ground
-	if a.dy > 0 and flr_solid then
+	if map_xn(a, 0) then
 		a.dy = 0
-		next_y = flr_t(next_y)
+		a.y = flr_t(a.y)
 		a.grounded = true
 
 		-- rising and hit ceiling
-	elseif a.dy < 0
-		and (
-		map_xn(a.x + 2, next_y, true)
-			or map_xn(a.x + a.w - 2, next_y, true)
-	) then	
+	elseif a.dy < 0 and map_xn(a, 2) then	
 		a.dy = 0
-		next_y = flr_t(next_y) + a.h
+		a.y = flr_t(a.y) + a.h
 
 		-- grounded?
 	else
 		a.grounded = abs(a.dy) < 0.1 and flr_solid
 	end
-
-	a.y = flr_100(next_y)
 
 	-- other states
 	if a.grounded then
@@ -232,6 +221,9 @@ function update_player(a)
   (sgn(a.dx) != sgn(a.d)) and (abs(a.dx) > 0.1)
 
 	a.running = not drifting and abs(a.dx) > 1
+
+	xa.prev = nil
+	a.prev = tcp(xa)
 end
 
 --------------------
@@ -351,7 +343,7 @@ function _draw()
 	cam.y += (target_y - cam.y) * 0.3
 	cam.y = mid(0, cam.y, map_h * 8 - 128)
 
-	log(cam.x.." | "..cam.y)
+	--log(cam.x.." | "..cam.y)
 	camera(cam.x, cam.y)
 
 	-- map
@@ -412,24 +404,37 @@ end
 --------------------
 -- collision (xn) --
 
-function map_xn(x, y, passthru)
-	local tx, ty = x / 8, y / 8
-	
-	local m = mget(tx, ty)
 
-	if fget(m, 1) then
-		return true
+-- ⬇️: 0, ⬅️: 1, ⬆️: 2, ➡️: 3
+function map_xn(a, dir)
+	local x, y, px, py =
+		a.x, a.y, a.prev.x, a.prev.y
+
+	if a.grounded then
+		y += 1
 	end
 
-	if (fget(m,0)) then
-		return not passthru
+	if dir == 3 then
+		x,px = x + a.w - 1, px + a.w - 1
 	end
+
+	if dir == 0 then
+		y,py = y + a.h - 1, py + a.h - 1
+	end
+
+	if dir == 0 or dir == 2 then
+		return do_map_xn(x, y, px, py, dir)
+			or do_map_xn(x + a.w - 1, y, px, py, dir)  
+	end
+
+	return do_map_xn(x, y, px, py, dir)
 end
 
 --(=====-
 
-function map_xn2(a)
-	local tx, ty = x / 8, y / 8
+function do_map_xn(x, y, px, py, dir)
+	local tx, ty, ptx, pty =
+		x \ 8, y \ 8, px \ 8, py \ 8
 	
 	local m = mget(tx, ty)
 
@@ -437,13 +442,12 @@ function map_xn2(a)
 		return true
 	end
 
-	local ptx, pty =
-		a.prev.x / 8, p.prev.y / 8
-
-	if (fget(m,0)) then
-		return pty > ty
+	if fget(m,0) then
+		if dir == 1 or dir == 3 then return false end
+		return ty > pty
 	end
 end
+
 
 --(=====-
 
