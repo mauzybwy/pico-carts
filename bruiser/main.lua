@@ -185,10 +185,10 @@ function update_player(a)
 	-- horizontal movement
 	a.x += a.dx
 
-	if a.dx < 0 and map_xn(a, 1) then
+	if a.dx < 0 and map_xn(a, 0) then
 		a.x = flr_t(a.x) + a.w
 		a.dx = 0
-	elseif a.dx > 0 and map_xn(a, 3) then
+	elseif a.dx > 0 and map_xn(a, 1) then
 		a.x = flr_t(a.x)
 		a.dx = 0
 	end
@@ -197,7 +197,7 @@ function update_player(a)
 	a.y += a.dy
 
 	-- falling and hit ground
-	if map_xn(a, 0) then
+	if map_xn(a, 3) then
 		a.dy = 0
 		a.y = flr_t(a.y)
 		a.grounded = true
@@ -405,7 +405,7 @@ end
 -- collision (xn) --
 
 
--- ⬇️: 0, ⬅️: 1, ⬆️: 2, ➡️: 3
+-- left️: 0 right: 1 up: 2 down: 3
 function map_xn(a, dir)
 	local x, y, px, py =
 		a.x, a.y, a.prev.x, a.prev.y
@@ -414,15 +414,15 @@ function map_xn(a, dir)
 		y += 1
 	end
 
-	if dir == 3 then
+	if dir == 1 then
 		x,px = x + a.w - 1, px + a.w - 1
 	end
 
-	if dir == 0 then
+	if dir == 3 then
 		y,py = y + a.h - 1, py + a.h - 1
 	end
 
-	if dir == 0 or dir == 2 then
+	if dir == 2 or dir == 3 then
 		return do_map_xn(x, y, px, py, dir)
 			or do_map_xn(x + a.w - 1, y, px, py, dir)  
 	end
@@ -442,10 +442,11 @@ function do_map_xn(x, y, px, py, dir)
 		return true
 	end
 
-	if fget(m,0) then
-		if dir == 1 or dir == 3 then return false end
-		return ty > pty
-	end
+	if fget(m, 0) then
+		return dir != 0 and dir != 1 and ty > pty
+ end
+
+  return false
 end
 
 
