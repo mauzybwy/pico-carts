@@ -68,6 +68,8 @@ function make_actor(k, x, y, d)
 		add(actors, a)
 	end
 
+	a.prev = tcp(a)
+
 	return a
 end
 
@@ -118,9 +120,9 @@ end
 -- update player ---
 
 function update_player(a)
+	-- setup
 	local ddy = gravity
-	local ddx =
-		a.ddx * (a.grounded and 1 or 0.6)
+	local ddx = a.ddx * (a.grounded and 1 or 0.6)
 	local friction = a.friction
 
 	if a.coyote > 0 and not a.grounded then
@@ -383,27 +385,35 @@ end
 -- math ------------
 
 function flr_100(n)
-	dec = abs(n) - flr(abs(n))
+	an = abs(n)
+	dec = an - flr(an)
 	hun = flr(dec * 100) / 100
 	
- return sgn(n) * (flr(abs(n)) + hun)
+ return sgn(n) * (flr(an) + hun)
 end
 
 --(=====-
 
 function flr_t(n)
-	return flr(n / 8) * 8
+	return (n \ 8) * 8
+end
+
+--------------------
+-- util ------------
+
+function tcp(t)
+ local t2 = {}
+ for k, v in pairs(t) do
+  t2[k] = v
+ end
+ return t2
 end
 
 --------------------
 -- collision (xn) --
 
 function map_xn(x, y, passthru)
-	local cx = x
-	local cy = y
-	
-	local tx = cx / 8
-	local ty = cy / 8
+	local tx, ty = x / 8, y / 8
 	
 	local m = mget(tx, ty)
 
@@ -413,6 +423,25 @@ function map_xn(x, y, passthru)
 
 	if (fget(m,0)) then
 		return not passthru
+	end
+end
+
+--(=====-
+
+function map_xn2(a)
+	local tx, ty = x / 8, y / 8
+	
+	local m = mget(tx, ty)
+
+	if fget(m, 1) then
+		return true
+	end
+
+	local ptx, pty =
+		a.prev.x / 8, p.prev.y / 8
+
+	if (fget(m,0)) then
+		return pty > ty
 	end
 end
 
